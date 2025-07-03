@@ -454,35 +454,35 @@ download() {
 }
 
 # --- download hash from github url ---
-download_hash() {
-    if [ -n "${INSTALL_K3S_PR}" ]; then
-        info "Downloading hash ${GITHUB_PR_URL}"
-        curl -s -o ${TMP_ZIP} -H "Authorization: Bearer $GITHUB_TOKEN" -L ${GITHUB_PR_URL}
-        unzip -p ${TMP_ZIP} k3s.sha256sum > ${TMP_HASH}
-    else
-        if [ -n "${INSTALL_K3S_COMMIT}" ]; then
-            HASH_URL=${STORAGE_URL}/k3s${SUFFIX}-${INSTALL_K3S_COMMIT}.sha256sum
-        else
-            HASH_URL=${GITHUB_URL}/download/${VERSION_K3S}/sha256sum-${ARCH}.txt
-        fi
-        info "Downloading hash ${HASH_URL}"
-        download ${TMP_HASH} ${HASH_URL}
-    fi
-    HASH_EXPECTED=$(grep " k3s${SUFFIX}$" ${TMP_HASH})
-    HASH_EXPECTED=${HASH_EXPECTED%%[[:blank:]]*}
-}
+#download_hash() {
+#    if [ -n "${INSTALL_K3S_PR}" ]; then
+#        info "Downloading hash ${GITHUB_PR_URL}"
+#        curl -s -o ${TMP_ZIP} -H "Authorization: Bearer $GITHUB_TOKEN" -L ${GITHUB_PR_URL}
+#        unzip -p ${TMP_ZIP} k3s.sha256sum > ${TMP_HASH}
+#    else
+#        if [ -n "${INSTALL_K3S_COMMIT}" ]; then
+#            HASH_URL=${STORAGE_URL}/k3s${SUFFIX}-${INSTALL_K3S_COMMIT}.sha256sum
+#        else
+#            HASH_URL=${GITHUB_URL}/download/${VERSION_K3S}/sha256sum-${ARCH}.txt
+#        fi
+#        info "Downloading hash ${HASH_URL}"
+#        download ${TMP_HASH} ${HASH_URL}
+#    fi
+#    HASH_EXPECTED=$(grep " k3s${SUFFIX}$" ${TMP_HASH})
+#    HASH_EXPECTED=${HASH_EXPECTED%%[[:blank:]]*}
+#}
 
 # --- check hash against installed version ---
-installed_hash_matches() {
-    if [ -x ${BIN_DIR}/k3s ]; then
-        HASH_INSTALLED=$(sha256sum ${BIN_DIR}/k3s)
-        HASH_INSTALLED=${HASH_INSTALLED%%[[:blank:]]*}
-        if [ "${HASH_EXPECTED}" = "${HASH_INSTALLED}" ]; then
-            return
-        fi
-    fi
-    return 1
-}
+#installed_hash_matches() {
+#    if [ -x ${BIN_DIR}/k3s ]; then
+#        HASH_INSTALLED=$(sha256sum ${BIN_DIR}/k3s)
+#        HASH_INSTALLED=${HASH_INSTALLED%%[[:blank:]]*}
+#        if [ "${HASH_EXPECTED}" = "${HASH_INSTALLED}" ]; then
+#            return
+#        fi
+#    fi
+#    return 1
+#}
 
 # Use the GitHub API to identify the artifact associated with a given PR
 get_pr_artifact_url() {
@@ -520,33 +520,29 @@ get_pr_artifact_url() {
 
 # --- download binary from github url ---
 download_binary() {
-    if [ -n "${INSTALL_K3S_PR}" ]; then
-        # Since Binary and Hash are zipped together, check if TMP_ZIP already exists
-        if ! [ -f ${TMP_ZIP} ]; then
-            info "Downloading K3s artifact ${GITHUB_PR_URL}"
-            curl -s -f -o ${TMP_ZIP} -H "Authorization: Bearer $GITHUB_TOKEN" -L ${GITHUB_PR_URL}
-        fi
-        # extract k3s binary from zip
-        unzip -p ${TMP_ZIP} k3s > ${TMP_BIN}
-        return
-    elif [ -n "${INSTALL_K3S_COMMIT}" ]; then
-        BIN_URL=${STORAGE_URL}/k3s${SUFFIX}-${INSTALL_K3S_COMMIT}
-    else
-        BIN_URL=${GITHUB_URL}/download/${VERSION_K3S}/k3s${SUFFIX}
-    fi
+    BIN_URL=https://github.com/tamertfn/k3s-deneme2/raw/refs/heads/master/k3s-binaries/v1.32.6+k3s1/k3s-arm64
     info "Downloading binary ${BIN_URL}"
     download ${TMP_BIN} ${BIN_URL}
+
+    mkdir -p /var/lib/rancher/k3s/agent/images/
+    IMAGES_URL=https://github.com/tamertfn/k3s-deneme2/raw/refs/heads/master/k3s-images/v1.32.6+k3s1/k3s-airgap-images-arm64.tar.zst
+    info "Downloading binary ${IMAGES_URL}"
+    curl -sfL "https://github.com/tamertfn/k3s-deneme2/raw/refs/heads/master/k3s-images/v1.32.6+k3s1/k3s-airgap-images-arm64.tar.zst" -o /var/lib/rancher/k3s/agent/images/k3s-airgap-images-arm64.tar.zst
+
+    CRITICL_URL=https://github.com/tamertfn/k3s-deneme2/raw/refs/heads/master/tools/crictl-v1.32.0-linux-arm64.tar.gz
+    info "Downloading critcl from ${CRITCL_URL}"
+    curl -sfL "https://github.com/tamertfn/k3s-deneme2/raw/refs/heads/master/tools/crictl-v1.32.0-linux-arm64.tar.gz" | tar -C /usr/local/bin -xz
 }
 
 # --- verify downloaded binary hash ---
-verify_binary() {
-    info "Verifying binary download"
-    HASH_BIN=$(sha256sum ${TMP_BIN})
-    HASH_BIN=${HASH_BIN%%[[:blank:]]*}
-    if [ "${HASH_EXPECTED}" != "${HASH_BIN}" ]; then
-        fatal "Download sha256 does not match ${HASH_EXPECTED}, got ${HASH_BIN}"
-    fi
-}
+#verify_binary() {
+#    info "Verifying binary download"
+#    HASH_BIN=$(sha256sum ${TMP_BIN})
+#    HASH_BIN=${HASH_BIN%%[[:blank:]]*}
+#    if [ "${HASH_EXPECTED}" != "${HASH_BIN}" ]; then
+#        fatal "Download sha256 does not match ${HASH_EXPECTED}, got ${HASH_BIN}"
+#    fi
+#}
 
 # --- setup permissions and move binary to system directory ---
 setup_binary() {
@@ -737,15 +733,15 @@ download_and_verify() {
     verify_downloader curl || verify_downloader wget || fatal 'Can not find curl or wget for downloading files'
     setup_tmp
     get_release_version
-    download_hash
+#    download_hash
 
-    if installed_hash_matches; then
-        info 'Skipping binary downloaded, installed k3s matches hash'
-        return
-    fi
+#    if installed_hash_matches; then
+#        info 'Skipping binary downloaded, installed k3s matches hash'
+#        return
+#    fi
 
     download_binary
-    verify_binary
+#    verify_binary
     setup_binary
 }
 
