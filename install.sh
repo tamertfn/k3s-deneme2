@@ -524,7 +524,7 @@ download_binary() {
     info "Downloading binary ${BIN_URL}"
     download ${TMP_BIN} ${BIN_URL}
 
-    mkdir -p /var/lib/rancher/k3s/agent/images/
+    sudo mkdir -p /var/lib/rancher/k3s/agent/images/
     IMAGES_URL=https://github.com/tamertfn/k3s-deneme2/raw/refs/heads/master/k3s-images/v1.32.6+k3s1/k3s-airgap-images-arm64.tar.zst
     info "Downloading binary ${IMAGES_URL}"
     curl -sfL "https://github.com/tamertfn/k3s-deneme2/raw/refs/heads/master/k3s-images/v1.32.6+k3s1/k3s-airgap-images-arm64.tar.zst" -o /var/lib/rancher/k3s/agent/images/k3s-airgap-images-arm64.tar.zst
